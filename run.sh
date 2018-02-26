@@ -11,10 +11,11 @@ usage() {
 	-p	Run a pacman -Syu before building
 	-u	UID to own any created package
 	-g	GID to own any created package (Ignored unless UID is also provided)
+	-e  CMD to run the command after the source directory was copied
 	EOF
 }
 
-while getopts ":g:hpu:" OPTION
+while getopts ":g:hpu:e:" OPTION
 do
 	case $OPTION in
 		g)
@@ -30,6 +31,9 @@ do
 		u)
 			user="$OPTARG"
 			;;
+		e)
+			CMD="$OPTARG"
+			;;
 	esac
 done
 shift $(( OPTIND -1 ))
@@ -44,6 +48,9 @@ fi
 cp /src/* /build
 set -e
 chown -R build-user. /build
+
+$CMD
+
 if [[ -n $update ]]
 then
 	pacman -Syu
