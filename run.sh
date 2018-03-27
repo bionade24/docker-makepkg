@@ -44,6 +44,12 @@ then
 	exit 1
 fi
 
+# lazily fix the cmdline bug
+if [ "$CMD" = "" ]
+then
+	CMD=true
+fi
+
 # cp errors if there is a directory, even though we don't want to copy directories
 cp /src/* /build
 set -e
