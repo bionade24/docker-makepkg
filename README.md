@@ -3,8 +3,7 @@
 This is a docker image for building Arch Linux packages in a clean container.
 
 ## Release schedule
-New versions will be uploaded to the Docker registry the day after justin8/archlinux builds. Usually the second of each month. No tagged releases will be made. Only latest as is usual for Arch dev tools.
-
+There is no release schedule. You need to keep this image up to date yourself, which shouldn't be that hard, given it only installs a subset of the base-devel group. archimg/base gets updated every day, judging by when the pushes happen, so the upstream image is up to date itself.
 
 ## Usage
 The included dmakepkg script will wrap this image nicely and clean up after itself and is therefore the recommended way to use this docker image.
