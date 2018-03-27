@@ -1,4 +1,4 @@
-#!/bin/bash -x
+#!/bin/bash
 usage() {
 	cat <<-EOF
 	usage: $(basename "$0") [OPTIONS] [makepkg parameters]
