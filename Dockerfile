@@ -1,4 +1,4 @@
-FROM base/archlinux
+FROM archimg/base
 
 RUN mkdir -p /build
 WORKDIR /build
