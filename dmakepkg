@@ -13,6 +13,7 @@ usage() {
 
 	Options:
 	-x	   Use host system's /etc/pacman.conf
+	-z     Do not automatically download missing PGP keys
 	-e CMD To pass CMD as command to the docker container. It executes CMD after copying the source directory.
 
 	Any non-listed flag will be automatically passed through to makepkg
@@ -22,8 +23,9 @@ usage() {
 CACHE=''
 CONF=''
 MAKEPKG=''
-
-while getopts ":hxe:" OPTION
+AUTODOWNLOAD=-x
+CMD='true'
+while getopts ":hxze:" OPTION
 do
 	case $OPTION in
 		h)
@@ -35,10 +37,13 @@ do
 		x)
 			[[ -e '/etc/pacman.conf' ]] && CONF='-v /etc/pacman.conf:/etc/pacman.conf'
 			;;
+		z)
+			AUTODOWNLOAD=
+			;;
 		e)
 			if [[ -n "$OPTARG" ]]
 			then
-				CMD="-e $OPTARG"
+				CMD="$OPTARG"
 				shift
 			fi
 			;;
@@ -92,7 +97,7 @@ docker run --name "$name" \
 	   $PKGDEST \
 	   $SRCPKGDEST \
 	   $LOGDEST \
-	   makepkg "$CMD" -u "$EUID" -g "$(id -g $EUID)" "$@"
+	   makepkg $AUTODOWNLOAD -e "$CMD" -u "$EUID" -g "$(id -g $EUID)" "$@"
 rc=$?
 
 exit $rc

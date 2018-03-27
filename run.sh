@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -x
 usage() {
 	cat <<-EOF
 	usage: $(basename "$0") [OPTIONS] [makepkg parameters]
@@ -12,10 +12,13 @@ usage() {
 	-u	UID to own any created package
 	-g	GID to own any created package (Ignored unless UID is also provided)
 	-e  CMD to run the command after the source directory was copied
+	-z  Do not automatically download missing PGP keys
 	EOF
 }
 
-while getopts ":g:hpu:e:" OPTION
+autoDownload=true
+
+while getopts ":g:hpzu:e:" OPTION
 do
 	case $OPTION in
 		g)
@@ -34,6 +37,9 @@ do
 		e)
 			CMD="$OPTARG"
 			;;
+		z)
+			autoDownload=false
+			;;
 	esac
 done
 shift $(( OPTIND -1 ))
@@ -45,10 +51,10 @@ then
 fi
 
 # lazily fix the cmdline bug
-if [ "$CMD" = "" ]
-then
-	CMD=true
-fi
+#if [ "$CMD" = "" ]
+#then
+#	CMD=true
+#fi
 
 # cp errors if there is a directory, even though we don't want to copy directories
 cp /src/* /build
@@ -68,6 +74,14 @@ else
 	else
 		flags='--force --syncdeps --noconfirm'
 	fi
+fi
+
+if [ $autoDownload ]
+then
+	mkdir ~build-user/.gnupg
+	chown -R build-user:build-user ~build-user/.gnupg
+	chmod -R 700 ~build-user/.gnupg
+	echo "keyserver-options auto-key-retrieve" >>  ~build-user/.gnupg/gpg.conf
 fi
 
 su build-user -s /bin/bash -c "makepkg $flags"
