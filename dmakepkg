@@ -20,11 +20,13 @@ usage() {
 	with no alterations.
 	EOF
 }
+
 CACHE=''
 CONF=''
 MAKEPKG=''
 AUTODOWNLOAD=-x
 CMD='true'
+
 while getopts ":hxze:" OPTION
 do
 	case $OPTION in
@@ -87,6 +89,8 @@ then
 fi
 
 docker run --name "$name" \
+	   -t \
+	   -i \
 	   --rm \
 	   --net=host \
 	   -v $(pwd):/src \
