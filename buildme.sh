@@ -1,3 +1,3 @@
 #! /bin/sh
 
-docker build -t makepkg .
+docker build --pull -t makepkg .
