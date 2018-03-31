@@ -1,0 +1,5 @@
+[Unit]
+Description=Build the docker-makepkg container
+
+[Service]
+ExecStart=/bin/bash /opt/docker-makepkg/buildme.sh
