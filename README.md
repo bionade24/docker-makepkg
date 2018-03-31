@@ -3,7 +3,7 @@
 This is a docker image for building Arch Linux packages in a clean container.
 
 ## Release schedule
-There is no release schedule. You need to keep this image up to date yourself, which shouldn't be that hard, given it only installs a subset of the base-devel group. archimg/base gets updated every day, judging by when the pushes happen, so the upstream image is up to date itself.
+There is no release schedule. This uses a purely local image that is updated every day, or 15 minutes after system start, if you use the docker-makepkg.timer systemd unit. The upstream image (archimg/base) should be updated every day, as claimed by its description. If it isn't, you should be able to build your own base image for the makepkg image quite easily.
 
 ## Usage
 The included dmakepkg script will wrap this image nicely and clean up after itself and is therefore the recommended way to use this docker image.
