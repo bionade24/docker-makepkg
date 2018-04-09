@@ -54,8 +54,6 @@ done
 
 shift $(( OPTIND - 1 ))
 
-echo $@
-
 # Using -e instead of -d incase it is a symlink
 [[ -e '/var/cache/pacman/pkg' ]] && CACHE='-v /var/cache/pacman/pkg:/var/cache/pacman/pkg'
 
