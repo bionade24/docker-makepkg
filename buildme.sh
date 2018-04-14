@@ -1,3 +1,3 @@
 #! /bin/sh
 
-docker build --pull -t makepkg "$(dirname $0)"
+docker build --pull --no-cache -t makepkg "$(dirname $0)"
