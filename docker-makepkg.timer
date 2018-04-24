@@ -4,7 +4,7 @@ Requires=docker.service network.target
 After=docker.service network.target
 
 [Timer]
-OnActiveSec=15min
+OnBootSec=15min
 OnUnitActiveSec=1d
 Persistent=true
 
