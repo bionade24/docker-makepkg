@@ -12,9 +12,10 @@ usage() {
 	usage: $(basename "$0") [option] [makepkg options]
 
 	Options:
-	-x	   Use host system's /etc/pacman.conf
-	-z     Do not automatically download missing PGP keys
-	-e CMD To pass CMD as command to the docker container. It executes CMD after copying the source directory.
+	-x		Use host system's /etc/pacman.conf
+	-y		Never use pump mode, even if pump mode capable servers are configured
+	-z		Do not automatically download missing PGP keys
+	-e CMD	To pass CMD as command to the docker container. It executes CMD after copying the source directory.
 
 	Any non-listed flag will be automatically passed through to makepkg
 	with no alterations.
@@ -25,6 +26,7 @@ CACHE=''
 CONF=''
 MAKEPKG=''
 AUTODOWNLOAD=-x
+USEPUMPMODE=-y
 CMD='true'
 
 while getopts ":hxze:" OPTION
@@ -38,6 +40,9 @@ do
 			;;
 		x)
 			[[ -e '/etc/pacman.conf' ]] && CONF='-v /etc/pacman.conf:/etc/pacman.conf'
+			;;
+		y)
+			USEPUMPMODE=
 			;;
 		z)
 			AUTODOWNLOAD=
@@ -99,7 +104,7 @@ docker run --name "$name" \
 	   $PKGDEST \
 	   $SRCPKGDEST \
 	   $LOGDEST \
-	   makepkg $AUTODOWNLOAD -e "$CMD" -u "$EUID" -g "$(id -g $EUID)" "$@"
+	   makepkg $AUTODOWNLOAD $USEPUMPMODE -e "$CMD" -u "$EUID" -g "$(id -g $EUID)" "$@"
 rc=$?
 
 exit $rc
