@@ -17,32 +17,61 @@ usage() {
 }
 
 autoDownload=true
+usePump=true
 
-while getopts ":g:hpzu:e:" OPTION
+set +e
+TEMP=$(getopt -n "$name" -o "xyze:" -- "$@")
+set -e
+
+if [ $? -ne 0 ]
+then
+	echo 'Terminating...' >&2
+	exit 1
+fi
+
+eval set -- "$TEMP"
+unset TEMP
+
+while true
 do
-	case $OPTION in
-		g)
+	case "$1" in
+		'-g')
 			group=$OPTARG
+			continue
 			;;
-		h)
+		'-h')
 			usage
 			exit 0
 			;;
-		p)
+		'-p')
 			update=true
+			continue
 			;;
-		u)
+		'-u')
 			user="$OPTARG"
+			continue
 			;;
-		e)
+		'-e')
 			CMD="$OPTARG"
+			continue
 			;;
-		z)
+		'-z')
 			autoDownload=false
+			continue
 			;;
-	esac
+		'-y')
+			usePump=false
+			continue
+			;;
+		'--')
+			shift
+			break
+			;;
+		*)
+			echo 'Internal error!' >&2
+			exit 1
+		esac
 done
-shift $(( OPTIND -1 ))
 
 if ! [[ -f /src/PKGBUILD ]]
 then
@@ -50,14 +79,9 @@ then
 	exit 1
 fi
 
-# lazily fix the cmdline bug
-#if [ "$CMD" = "" ]
-#then
-#	CMD=true
-#fi
 
 # cp errors if there is a directory, even though we don't want to copy directories
-cp /src/* /build
+cp /src/* /build 2> /dev/null
 set -e
 chown -R build-user. /build
 
@@ -83,8 +107,18 @@ then
 	chmod -R 700 ~build-user/.gnupg
 	echo "keyserver-options auto-key-retrieve" >>  ~build-user/.gnupg/gpg.conf
 fi
+# check if any servers in DISTCC_HOSTS contain ",cpp"
+# If they do, use pump mode by default
+source /etc/makepkg.conf
 
-su build-user -s /bin/bash -c "makepkg $flags"
+export DISTCC_HOSTS
+
+if [[ "$DISTCC_HOSTS" =~ ",cpp" && "$usePump" = true ]]
+then
+	su build-user -p -s /bin/bash -c "pump makepkg $flags"
+else
+	su build-user -p -s /bin/bash -c "makepkg $flags"
+fi
 
 if [[ -n $user ]]
 then

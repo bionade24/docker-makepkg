@@ -29,35 +29,57 @@ AUTODOWNLOAD=-x
 USEPUMPMODE=-y
 CMD='true'
 
-while getopts ":hxze:" OPTION
+TEMP=$(getopt -n "$name" -o "xyze:" -- "$@")
+
+if [ $? -ne 0 ]
+then
+	echo 'Terminating...' >&2
+	exit 1
+fi
+
+eval set -- "$TEMP"
+unset TEMP
+
+
+while true
 do
-	case $OPTION in
-		h)
+	case "$1" in
+		'-h')
 			usage
 			echo '---------------------------------------'
 			docker run --rm --name=$name makepkg -h
 			exit 0
 			;;
-		x)
+		'-x')
 			[[ -e '/etc/pacman.conf' ]] && CONF='-v /etc/pacman.conf:/etc/pacman.conf'
+			continue
 			;;
-		y)
+		'-y')
 			USEPUMPMODE=
+			continue
 			;;
-		z)
+		'-z')
 			AUTODOWNLOAD=
+			continue
 			;;
-		e)
-			if [[ -n "$OPTARG" ]]
+		'-e')
+			if [[ -n "$2" ]]
 			then
-				CMD="$OPTARG"
+				CMD="$2"
 				shift
 			fi
+			continue
 			;;
+		'--')
+			shift
+			break
+			;;
+		*)
+			echo 'Internal error!' >&2
+			exit 1
 	esac
 done
 
-shift $(( OPTIND - 1 ))
 
 # Using -e instead of -d incase it is a symlink
 [[ -e '/var/cache/pacman/pkg' ]] && CACHE='-v /var/cache/pacman/pkg:/var/cache/pacman/pkg'
@@ -104,7 +126,7 @@ docker run --name "$name" \
 	   $PKGDEST \
 	   $SRCPKGDEST \
 	   $LOGDEST \
-	   makepkg $AUTODOWNLOAD $USEPUMPMODE -e "$CMD" -u "$EUID" -g "$(id -g $EUID)" "$@"
+	   makepkg $AUTODOWNLOAD $USEPUMPMODE -e "$CMD" -u "$EUID" -g "$(id -g $EUID)" $@
 rc=$?
 
 exit $rc
