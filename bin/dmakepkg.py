@@ -36,20 +36,23 @@ class dmakepkg:
 		self.command = namespace.e
 
 		parameters.extend(self.findParameters())
+		print("Parameters: ", parameters)
 
 		# set object attributes
 		# self.hostPacmanConf = namespace.
 		# create first part
-		completeCmdLine = "/bin/docker --rm --net=host -ti ".split(" ").extend(
-			["-v", "{}:/src".format(os.getcwd())])
-		completeCmdLine.extend(parameters)
-		completeCmdLine.append("makepkg")
+		completeCmdLine = "/bin/docker run --rm --net=host -ti".split(" ")
+		completeCmdLine += ["-v", "{}:/src".format(os.getcwd())] + parameters + [ "makepkg" ]
+		#completeCmdLine.extend(parameters)
 
-		if self.dontDownloadKeys:
+		if self.downloadKeys:
 			completeCmdLine.append("-x")
 		if self.usePumpMode:
 			completeCmdLine.append("-y")
-		completeCmdLine.extend(["-u", os.geteuid(), "-g", os.getegid(), rest])
+		completeCmdLine.extend(["-u", str(os.geteuid()), "-g", str(os.getegid())])
+		if self.command:
+			completeCmdLine.extend(["-e", self.command ])
+		completeCmdLine += self.rest
 
 		print("cmdline: ", completeCmdLine)
 		dockerProcess = subprocess.Popen(completeCmdLine)
@@ -62,22 +65,16 @@ class dmakepkg:
 		parameters=[]
 		try:
 			lines = open(self.makepkgConf, "r").readlines()
-			print("Lines: ", lines)
 		except:
 			# makepkg doesn't exist
 			pass
 		else:
-			parameters.append("-v /etc/makepkg.conf:/etc/makepkg.conf".split())
+			parameters.extend("-v /etc/makepkg.conf:/etc/makepkg.conf".split())
 			for i in [ "SRCDEST", "PKGDEST", "SRCPKGDEST", "LOGDEST" ]:
 				if i in lines and not i.lstrip().startswith('#'):
-					print("Line: ", i)
 					tokens=i.lstrip().rstrip("\n").split("=")
 					parameters.append("{}:{}".format(tokens[1], tokens[1]))
 		return parameters
-
-
-
-
 
 if __name__ == '__main__':
 	dm = dmakepkg()
