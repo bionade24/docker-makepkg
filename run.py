@@ -150,7 +150,7 @@ class dmakepkgContainer:
 				print(outs)
 				eprint(errs)
 		else:
-			arguments = [ 'su', '-p', '-s', '/bin/bash', 'build-user', "makepkg {}".format(shlex.quote(" ".join(flags))) ]
+			arguments = [ 'su', '-p', '-c'] +  [ 'makepkg {}'.format(" ".join(flags)) ] + [ '-s', '/bin/bash', 'build-user', '--' ]
 			makepkgprocess = subprocess.Popen(arguments)
 			while makepkgProcess.poll() == None:
 				outs, errs = makepkgProcess.communicate(input="")
