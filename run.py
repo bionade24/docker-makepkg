@@ -48,7 +48,7 @@ class dmakepkgContainer:
 	def appendToFile(self, path, content):
 		with open(path, "a+") as f:
 			f.seek(0,2)
-			f.write("content")
+			f.write(content)
 
 	# From https://stackoverflow.com/questions/17435056/read-bash-variables-into-a-python-script
 	# Written by user Taejoon Byun
@@ -104,8 +104,9 @@ class dmakepkgContainer:
 		self.usePumpMode = namespace.y
 		self.downloadKeys = namespace.z
 		buildUserUid = pwd.getpwnam("build-user").pw_uid
+		buildUserGid = pwd.getpwnam("build-user").pw_gid
 		self.copytree("/src/", "/build")
-		self.changeUserOrGid(buildUserUid, -1, "/build")
+		self.changeUserOrGid(buildUserUid, buildUserGid, "/build")
 
 		
 
@@ -130,13 +131,13 @@ class dmakepkgContainer:
 		if self.downloadKeys:
 			gnupg = os.path.expanduser("~build-user/.gnupg")
 			os.makedirs(gnupg, mode=0o700, exist_ok=True)
-			self.changeUserOrGid(buildUserUid, pwd.getpwnam("build-user").pw_gid, gnupg)
+			self.changeUserOrGid(buildUserUid, pwd.getpwnam("build-user").pw_gid, "/build")
 			self.changePermissionsRecursively(gnupg, 0o700)
 			self.appendToFile(gnupg + "/gpg.conf", "keyserver-options auto-key-retrieve\n")
 
 		# su resets PATH, so distcc doesn't find the distcc directory
 		if self.checkForPumpMode():
-			arguments = [ 'su', '-p', '-c'] +  [ 'pump makepkg {}'.format(" ".join(flags)) ] + [ '-s', '/bin/bash', 'build-user', '--' ]
+			arguments = [ 'su', '-c'] +  [ 'pump makepkg {}'.format(" ".join(flags)) ] + [ '-s', '/bin/bash', 'build-user', '--' ]
 			print("args: {}".format(arguments))
 			makepkgProcess = subprocess.Popen(arguments,
 				env={
@@ -147,16 +148,20 @@ class dmakepkgContainer:
 				)
 			while makepkgProcess.poll() == None:
 				outs, errs = makepkgProcess.communicate(input="")
-				print(outs)
-				eprint(errs)
+				if outs:
+					print(outs)
+				if errs:
+					eprint(errs)
 		else:
-			arguments = [ 'su', '-p', '-c'] +  [ 'makepkg {}'.format(" ".join(flags)) ] + [ '-s', '/bin/bash', 'build-user', '--' ]
+			arguments = [ 'su', '-c'] +  [ 'makepkg {}'.format(" ".join(flags)) ] + [ '-s', '/bin/bash', 'build-user', '--' ]
 			makepkgProcess = subprocess.Popen(arguments)
 			while makepkgProcess.poll() == None:
 				outs, errs = makepkgProcess.communicate(input="")
-				print(outs)
-				eprint(errs)
-
+				if outs:
+					print(outs)
+				if errs:
+					eprint(errs)
+			
 		if self.user and not self.group:
 			self.changeUserOrGid(self.user, self.group, "/build")
 		elif self.user:
