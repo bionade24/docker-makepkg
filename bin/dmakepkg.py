@@ -15,7 +15,7 @@ class dmakepkg:
 	# From https://stackoverflow.com/questions/17435056/read-bash-variables-into-a-python-script
 	# Written by user Taejoon Byun
 	def getVar(self, script, varName):
-		CMD = 'echo $(source {}; echo ${{{}[@]}})'.format(script, varName)
+		CMD = 'echo $(source "{}"; echo ${{{}[@]}})'.format(script, varName)
 		p = subprocess.Popen(CMD, stdout=subprocess.PIPE, shell=True, executable='/bin/bash')
 		return p.stdout.readlines()[0].decode("utf-8").strip()
 
@@ -88,8 +88,6 @@ class dmakepkg:
 		# create first part
 		completeCmdLine = "/bin/docker run --rm -ti --cpu-shares=128 --pids-limit=-1".split(" ")
 
-		if self.useHostPacman:
-			completeCmdLine += [ "-v", "/etc/pacman.conf:/etc/pacman.conf" ]
 
 		completeCmdLine += ["-v", "{}:/src".format(os.getcwd())] + parameters + [ "makepkg" ]
 
