@@ -9,7 +9,7 @@ import sys
 
 ## Dockerfile generator
 class dmakepkgBuilder:
-	head = """FROM archimg/base\nRUN echo -e "[multilib]\\nInclude = /etc/pacman.d/mirrorlist" >> /etc/pacman.conf"""
+	head = """FROM archimg/base:latest\nRUN echo -e "[multilib]\\nInclude = /etc/pacman.d/mirrorlist" >> /etc/pacman.conf"""
 	tail = ("""RUN pacman -Syuq --noconfirm --needed gcc base-devel distcc python git mercurial bzr subversion openssh && rm -rf /var/cache/pacman/pkg/*\n"""
 	"RUN useradd -m -d /build -s /bin/bash build-user\n"
 	"ADD sudoers /etc/sudoers\n"
@@ -66,7 +66,7 @@ class dmakepkgBuilder:
 
 	def startDockerBuild(self):
 
-		args = [ "/bin/docker", "build", "-t", "makepkg", os.path.dirname(os.path.realpath(__file__)) ]
+		args = [ "/bin/docker", "build", "--pull", "--no-cache", "--tag=makepkg", os.path.dirname(os.path.realpath(__file__)) ]
 
 		dockerBuild = subprocess.run(args)
 
