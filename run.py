@@ -122,11 +122,9 @@ class dmakepkgContainer:
 
 		if len(self.rest) == 0:
 			flags = "--force --syncdeps --noconfirm".split()
-			print("Flags: ", flags)
 		else:
 			# translate list object to space seperated arguments
 			flags = self.rest
-			print("Alt flags: ", flags)
 
 		if self.downloadKeys:
 			gnupg = os.path.expanduser("~build-user/.gnupg")
@@ -138,7 +136,6 @@ class dmakepkgContainer:
 		# su resets PATH, so distcc doesn't find the distcc directory
 		if self.checkForPumpMode():
 			arguments = [ 'su', '-c'] +  [ 'pump makepkg {}'.format(" ".join(flags)) ] + [ '-s', '/bin/bash', 'build-user', '--' ]
-			print("args: {}".format(arguments))
 			makepkgProcess = subprocess.Popen(arguments,
 				env={
 					"DISTCC_HOSTS" : self.getVar("/etc/makepkg.conf", "DISTCC_HOSTS"),
@@ -161,7 +158,7 @@ class dmakepkgContainer:
 					print(outs)
 				if errs:
 					eprint(errs)
-			
+
 		if self.user and not self.group:
 			self.changeUserOrGid(self.user, self.group, "/build")
 		elif self.user:
