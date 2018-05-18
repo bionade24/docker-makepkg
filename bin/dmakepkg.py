@@ -15,7 +15,7 @@ class dmakepkg:
 	# From https://stackoverflow.com/questions/17435056/read-bash-variables-into-a-python-script
 	# Written by user Taejoon Byun
 	def getVar(self, script, varName):
-		CMD = 'echo $(source {}; echo ${})'.format(script, varName)
+		CMD = 'echo $(source {}; echo ${{{}[@]}})'.format(script, varName)
 		p = subprocess.Popen(CMD, stdout=subprocess.PIPE, shell=True, executable='/bin/bash')
 		return p.stdout.readlines()[0].decode("utf-8").strip()
 
@@ -25,6 +25,23 @@ class dmakepkg:
 		CMD = 'echo $(source {}; echo $({}))'.format(script, funcName)
 		p = subprocess.Popen(CMD, stdout=subprocess.PIPE, shell=True, executable='/bin/bash')
 		return p.stdout.readlines()[0].decode("utf-8").strip()
+
+	def signPackages(self):
+		args = [ "/bin/gpg", "--detach-sign" ]
+		key = self.getVar(self.makepkg, "GPGKEY")
+		if key:
+			args.extend(["-u", key])
+		f = []
+		for (dirpath, dirnames, filenames) in walk(os.getcwd()):
+			f.extend(filenames)
+			break
+		toSign = []
+
+		for i in filenames:
+			if ".pkg." in i:
+				subprocess.run(args + i)
+
+
 
 	def main(self):
 		self.parser = argparse.ArgumentParser(prog="dmakepkg")
@@ -60,6 +77,7 @@ class dmakepkg:
 		self.downloadKeys = namespace.z
 		self.command = namespace.e
 		self.useHostPacman = namespace.x
+		self.sign = False
 
 		
 		if os.path.isfile(self.makepkgConf):
@@ -89,6 +107,10 @@ class dmakepkg:
 		dockerProcess = subprocess.Popen(completeCmdLine)
 		dockerProcess.wait()
 
+		for i in self.getVar(self.makepkgConf, "BUILDENV").split():
+			if "sign" in i:
+				if i.startswith("!"):
+					self.sign = False
 
 	# this function finds all possible arguments to the docker command line we could need
 	# and builds them.
