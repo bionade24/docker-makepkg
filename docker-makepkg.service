@@ -2,4 +2,4 @@
 Description=Build the docker-makepkg container
 
 [Service]
-ExecStart=/bin/bash /opt/docker-makepkg/buildme.sh
+ExecStart=/bin/python3 -B /opt/docker-makepkg/containerBuilder.py
