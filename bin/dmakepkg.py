@@ -15,7 +15,7 @@ class dmakepkg:
 	# From https://stackoverflow.com/questions/17435056/read-bash-variables-into-a-python-script
 	# Written by user Taejoon Byun
 	def getVar(self, script, varName):
-		CMD = 'echo $(source {}, echo ${})'.format(script, varName)
+		CMD = 'echo $(source {}; echo ${})'.format(script, varName)
 		p = subprocess.Popen(CMD, stdout=subprocess.PIPE, shell=True, executable='/bin/bash')
 		return p.stdout.readlines()[0].decode("utf-8").strip()
 
@@ -45,9 +45,11 @@ class dmakepkg:
 
 		parameters = [ "--name", "dmakepkg_{}".format(uuid.uuid4())]
 
-		localCacheDir = self.getVar(self.pacmanConf, "CacheDir")
-		if not localCacheDir:
-			localCacheDir = "/var/cache/pacman/pkg"
+		# pacman.conf is not a bash file, so this doesn't work.
+		# localCacheDir = self.getVar(self.pacmanConf, "CacheDir")
+		# if not localCacheDir:
+		#	localCacheDir = "/var/cache/pacman/pkg"
+		localCacheDir = "/var/cache/pacman/pkg"
 
 		if namespace.x:
 			parameters.extend("-v /etc/pacman.conf:/etc/pacman.conf -v {}:{}".format(localCacheDir, localCacheDir).split(" "))
@@ -92,17 +94,10 @@ class dmakepkg:
 	# and builds them.
 	def findParameters(self):
 		parameters=[]
-		try:
-			lines = open(self.makepkgConf, "r").readlines()
-		except:
-			# makepkg doesn't exist
-			return parameters
-	
-		parameters.extend("-v /etc/makepkg.conf:/etc/makepkg.conf".split())
 		for i in [ "SRCDEST", "PKGDEST", "SRCPKGDEST", "LOGDEST" ]:
-			if i in lines and not i.lstrip().startswith('#'):
-				tokens=i.lstrip().rstrip("\n").split("=")
-				parameters.append("{}:{}".format(tokens[1], tokens[1]))
+			value =  self.getVar(self.makepkgConf, i)
+			if value != "":
+				parameters.extend([ "-v",  "{}:{}".format(i, value)])
 		return parameters
 
 if __name__ == '__main__':
