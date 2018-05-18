@@ -7,6 +7,7 @@ import sys
 import uuid
 
 class dmakepkg:
+	__eDefaults = "--nosign --force --syncdeps --noconfirm"
 	def __init__(self):
 		self.pacmanConf="/etc/pacman.conf"
 		self.makepkgConf="/etc/makepkg.conf"
@@ -15,7 +16,7 @@ class dmakepkg:
 	# From https://stackoverflow.com/questions/17435056/read-bash-variables-into-a-python-script
 	# Written by user Taejoon Byun
 	def getVar(self, script, varName):
-		CMD = 'echo $(source {}; echo ${})'.format(script, varName)
+		CMD = 'echo $(source "{}"; echo ${{{}[@]}})'.format(script, varName)
 		p = subprocess.Popen(CMD, stdout=subprocess.PIPE, shell=True, executable='/bin/bash')
 		return p.stdout.readlines()[0].decode("utf-8").strip()
 
@@ -25,6 +26,25 @@ class dmakepkg:
 		CMD = 'echo $(source {}; echo $({}))'.format(script, funcName)
 		p = subprocess.Popen(CMD, stdout=subprocess.PIPE, shell=True, executable='/bin/bash')
 		return p.stdout.readlines()[0].decode("utf-8").strip()
+
+	def signPackages(self):
+		args = [ "/bin/gpg", "--batch", "--yes", "--detach-sign" ]
+		key = self.getVar(self.makepkgConf, "GPGKEY")
+		if key:
+			args.extend(["-u", key])
+		f = []
+		for (dirpath, dirnames, filenames) in os.walk(os.getcwd()):
+			f.extend(filenames)
+			break
+		
+		for i in f:
+			if ".pkg." in i and not i.endswith("sig"):
+				g = []
+				g.extend(args)
+				g.append(i)
+				subprocess.run(g)
+
+
 
 	def main(self):
 		self.parser = argparse.ArgumentParser(prog="dmakepkg")
@@ -41,7 +61,11 @@ class dmakepkg:
 			)
 		self.parser.add_argument('-e', nargs='?',
 			help="Executes the argument as a command in the container after copying the package source")
-		namespace, self.rest = self.parser.parse_known_args()
+
+		self.parser.add_argument('rest', nargs=argparse.REMAINDER,
+			help="The arguments that are passed to the call to pacman in its executions in the container. They default to \"--nosign --force --syncdeps --noconfirm\".")
+
+		namespace = self.parser.parse_args()
 
 		parameters = [ "--name", "dmakepkg_{}".format(uuid.uuid4())]
 
@@ -60,19 +84,15 @@ class dmakepkg:
 		self.downloadKeys = namespace.z
 		self.command = namespace.e
 		self.useHostPacman = namespace.x
-
 		
 		if os.path.isfile(self.makepkgConf):
 			parameters += self.findParameters()
-		print("Parameters: ", parameters)
 
 		# set object attributes
 		# self.hostPacmanConf = namespace.
 		# create first part
-		completeCmdLine = "/bin/docker run --rm --net=host -ti --cpu-shares=128 --pids-limit=-1".split(" ")
+		completeCmdLine = "/bin/docker run --rm -ti --cpu-shares=128 --pids-limit=-1".split(" ")
 
-		if self.useHostPacman:
-			completeCmdLine += [ "-v", "/etc/pacman.conf:/etc/pacman.conf" ]
 
 		completeCmdLine += ["-v", "{}:/src".format(os.getcwd())] + parameters + [ "makepkg" ]
 
@@ -82,18 +102,22 @@ class dmakepkg:
 			completeCmdLine.append("-y")
 		completeCmdLine.extend(["-u", str(os.geteuid()), "-g", str(os.getegid())])
 		if self.command:
-			completeCmdLine.extend(["-e", self.command ])
-		completeCmdLine += self.rest
+			completeCmdLine.extend(["-e", self.command])
+		completeCmdLine += namespace.rest
 
-		print("cmdline: ", completeCmdLine)
 		dockerProcess = subprocess.Popen(completeCmdLine)
 		dockerProcess.wait()
 
+		for i in self.getVar(self.makepkgConf, "BUILDENV").split():
+			if "sign" in i:
+				if not i.startswith("!"):
+					self.signPackages()
 
 	# this function finds all possible arguments to the docker command line we could need
 	# and builds them.
 	def findParameters(self):
-		parameters=[]
+		parameters=[ "-v", "/etc/makepkg.conf:/etc/makepkg.conf:ro" ]
+
 		for i in [ "SRCDEST", "PKGDEST", "SRCPKGDEST", "LOGDEST" ]:
 			value =  self.getVar(self.makepkgConf, i)
 			if value != "":

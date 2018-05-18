@@ -7,15 +7,17 @@ import os
 import subprocess
 import sys
 
+# && mkdir /build/.gnupg && chown build-user:build-user /build/.gnupg && chmod 700 /build/.gnupg/
+
 ## Dockerfile generator
 class dmakepkgBuilder:
-	head = """FROM archimg/base\nRUN echo -e "[multilib]\\nInclude = /etc/pacman.d/mirrorlist" >> /etc/pacman.conf"""
-	tail = ("""RUN pacman -Syuq --noconfirm --needed gcc base-devel distcc python git mercurial bzr subversion openssh && rm -rf /var/cache/pacman/pkg/*\n"""
-	"RUN useradd -m -d /build -s /bin/bash build-user\n"
+	head = """FROM archlinux/base:latest\nLABEL tool=docker-makepkg\nRUN echo -e "[multilib]\\nInclude = /etc/pacman.d/mirrorlist" >> /etc/pacman.conf\n RUN pacman --noconfirm -Sy archlinux-keyring && pacman-key --init && pacman-key --populate archlinux\n"""
+	tail = ("RUN useradd -m -d /build -s /bin/bash build-user\n"
 	"ADD sudoers /etc/sudoers\n"
 	"""WORKDIR /build\n"""
 	"""VOLUME "/src\"\n"""
 	"ADD run.py /run.py\n"
+	"ADD gnupg.conf /build/.gnupg/gnupg.conf\n"
 	"""ENTRYPOINT ["/run.py"]\n""")
 
 
@@ -54,10 +56,10 @@ class dmakepkgBuilder:
 
 	def createDockerfile(self):
 		if self.cache:
-			complete = self.head + "\nRUN /bin/bash -c 'cat <(echo Server = http://{}:{}) /etc/pacman.d/mirrorlist > foobar'\n" \
-			.format(self.pacmanCacheIp.compressed, self.pacmanCachePort) + "RUN mv foobar /etc/pacman.d/mirrorlist\n" + self.tail
+			complete = self.head + "\nRUN /bin/bash -c 'cat <(echo Server = http://{}:{}) /etc/pacman.d/mirrorlist > foobar && mv foobar /etc/pacman.d/mirrorlist && pacman -Syuq --noconfirm --needed procps-ng gcc base-devel distcc python git mercurial bzr subversion openssh && rm -rf /var/cache/pacman/pkg/* && cp /etc/pacman.d/mirrorlist foo && tail -n +2 foo > /etc/pacman.d/mirrorlist'\nCOPY pump /usr/bin/pump\n"\
+			"".format(self.pacmanCacheIp.compressed, self.pacmanCachePort) +  self.tail
 		else:
-			complete = self.head + self.tail
+			complete = self.head + """RUN pacman -Syuq --noconfirm --needed procps-ng  gcc base-devel distcc python git mercurial bzr subversion openssh && rm -rf /var/cache/pacman/pkg/*\nCOPY pump /usr/bin/pump\n""" + self.tail
 		# write file
 		scriptLocation = os.path.realpath(__file__)
 
@@ -66,7 +68,7 @@ class dmakepkgBuilder:
 
 	def startDockerBuild(self):
 
-		args = [ "/bin/docker", "build", "-t", "makepkg", os.path.dirname(os.path.realpath(__file__)) ]
+		args = [ "/bin/docker", "build", "--pull", "--no-cache", "--tag=makepkg", os.path.dirname(os.path.realpath(__file__)) ]
 
 		dockerBuild = subprocess.run(args)
 
