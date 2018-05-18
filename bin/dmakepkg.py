@@ -87,7 +87,7 @@ class dmakepkg:
 		# set object attributes
 		# self.hostPacmanConf = namespace.
 		# create first part
-		completeCmdLine = "/bin/docker run --rm --net=host -ti --cpu-shares=128 --pids-limit=-1".split(" ")
+		completeCmdLine = "/bin/docker run --rm -ti --cpu-shares=128 --pids-limit=-1".split(" ")
 
 		if self.useHostPacman:
 			completeCmdLine += [ "-v", "/etc/pacman.conf:/etc/pacman.conf" ]
