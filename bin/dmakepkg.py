@@ -82,7 +82,6 @@ class dmakepkg:
 		
 		if os.path.isfile(self.makepkgConf):
 			parameters += self.findParameters()
-		print("Parameters: ", parameters)
 
 		# set object attributes
 		# self.hostPacmanConf = namespace.
@@ -103,7 +102,6 @@ class dmakepkg:
 			completeCmdLine.extend(["-e", self.command ])
 		completeCmdLine += self.rest
 
-		print("cmdline: ", completeCmdLine)
 		dockerProcess = subprocess.Popen(completeCmdLine)
 		dockerProcess.wait()
 
