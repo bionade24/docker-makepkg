@@ -121,7 +121,7 @@ class dmakepkgContainer:
 		flags = None
 
 		if len(self.rest) == 0:
-			flags = "--force --syncdeps --noconfirm".split()
+			flags = "--nosign --force --syncdeps --noconfirm".split()
 		else:
 			# translate list object to space seperated arguments
 			flags = self.rest
