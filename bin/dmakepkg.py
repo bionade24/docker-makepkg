@@ -28,18 +28,19 @@ class dmakepkg:
 
 	def signPackages(self):
 		args = [ "/bin/gpg", "--detach-sign" ]
-		key = self.getVar(self.makepkg, "GPGKEY")
+		key = self.getVar(self.makepkgConf, "GPGKEY")
 		if key:
 			args.extend(["-u", key])
 		f = []
-		for (dirpath, dirnames, filenames) in walk(os.getcwd()):
+		for (dirpath, dirnames, filenames) in os.walk(os.getcwd()):
 			f.extend(filenames)
 			break
-		toSign = []
-
-		for i in filenames:
+		for i in f:
 			if ".pkg." in i:
-				subprocess.run(args + i)
+				g = []
+				g.extend(args)
+				g.append(i)
+				subprocess.run(g)
 
 
 
@@ -77,8 +78,6 @@ class dmakepkg:
 		self.downloadKeys = namespace.z
 		self.command = namespace.e
 		self.useHostPacman = namespace.x
-		self.sign = False
-
 		
 		if os.path.isfile(self.makepkgConf):
 			parameters += self.findParameters()
@@ -105,8 +104,8 @@ class dmakepkg:
 
 		for i in self.getVar(self.makepkgConf, "BUILDENV").split():
 			if "sign" in i:
-				if i.startswith("!"):
-					self.sign = False
+				if not i.startswith("!"):
+					self.signPackages()
 
 	# this function finds all possible arguments to the docker command line we could need
 	# and builds them.
