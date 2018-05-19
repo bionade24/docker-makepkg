@@ -135,14 +135,16 @@ class dmakepkgContainer:
 
 		# su resets PATH, so distcc doesn't find the distcc directory
 		if self.checkForPumpMode():
-			arguments = [ 'su', '-c'] +  [ 'pump makepkg {}'.format(" ".join(flags)) ] + [ '-s', '/bin/bash', 'build-user', '--' ]
-			makepkgProcess = subprocess.Popen(arguments,
-				env={
-					"DISTCC_HOSTS" : self.getVar("/etc/makepkg.conf", "DISTCC_HOSTS"),
-					"DISTCC_LOCATION" : "/usr/bin/",
-					"HOME" : "/build"
-				}
-				)
+			bashFileContents="#! /bin/bash\n"
+			"pump makepkg {}\n".format(" ".join(flags))
+			with open("/buildScript.sh", "w") as f:
+				f.write(bashFileContents)
+			self.changePermissionsRecursively("/buildScript.sh", 0o555)
+			arguments = [ 'su', '-c' ] +  [ 'DISTCC_HOSTS="{}" DISTCC_LOCATION={} pump makepkg {}'.format(self.getVar("/etc/makepkg.conf", "DISTCC_HOSTS"),
+				"/usr/bin",
+				" ".join(flags)) ] + [ '-s', '/bin/bash', 'build-user' ]
+			makepkgProcess = subprocess.Popen(arguments)
+
 			while makepkgProcess.poll() == None:
 				outs, errs = makepkgProcess.communicate(input="")
 				if outs:
@@ -150,7 +152,7 @@ class dmakepkgContainer:
 				if errs:
 					eprint(errs)
 		else:
-			arguments = [ 'su', '-c'] +  [ 'makepkg {}'.format(" ".join(flags)) ] + [ '-s', '/bin/bash', 'build-user', '--' ]
+			arguments = [ 'su', '-c'] +  [ 'makepkg {}'.format(" ".join(flags)) ] + [ '-s', '/bin/bash', '-l' 'build-user']
 			makepkgProcess = subprocess.Popen(arguments)
 			while makepkgProcess.poll() == None:
 				outs, errs = makepkgProcess.communicate(input="")
