@@ -111,7 +111,8 @@ class dmakepkg:
 	# this function finds all possible arguments to the docker command line we could need
 	# and builds them.
 	def findParameters(self):
-		parameters=[]
+		parameters=[ "-v", "/etc/makepkg.conf:/etc/makepkg.conf:ro" ]
+
 		for i in [ "SRCDEST", "PKGDEST", "SRCPKGDEST", "LOGDEST" ]:
 			value =  self.getVar(self.makepkgConf, i)
 			if value != "":
