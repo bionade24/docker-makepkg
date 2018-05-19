@@ -27,7 +27,7 @@ class dmakepkg:
 		return p.stdout.readlines()[0].decode("utf-8").strip()
 
 	def signPackages(self):
-		args = [ "/bin/gpg", "--detach-sign" ]
+		args = [ "/bin/gpg", "--batch", "--yes", "--detach-sign" ]
 		key = self.getVar(self.makepkgConf, "GPGKEY")
 		if key:
 			args.extend(["-u", key])
