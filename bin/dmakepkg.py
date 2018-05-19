@@ -35,8 +35,9 @@ class dmakepkg:
 		for (dirpath, dirnames, filenames) in os.walk(os.getcwd()):
 			f.extend(filenames)
 			break
+		
 		for i in f:
-			if ".pkg." in i:
+			if ".pkg." in i and not i.endswith("sig"):
 				g = []
 				g.extend(args)
 				g.append(i)
