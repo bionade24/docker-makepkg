@@ -54,8 +54,8 @@ class dmakepkgBuilder:
 
 	def createDockerfile(self):
 		if self.cache:
-			complete = self.head + "\nRUN /bin/bash -c 'cat <(echo Server = http://{}:{}) /etc/pacman.d/mirrorlist > foobar'\n" \
-			.format(self.pacmanCacheIp.compressed, self.pacmanCachePort) + "RUN mv foobar /etc/pacman.d/mirrorlist\n" + self.tail
+			complete = self.head + "\nRUN /bin/bash -c 'cat <(echo Server = http://{}:{}) /etc/pacman.d/mirrorlist > foobar && mv foobar /etc/pacman.d/mirrorlist'\n" \
+			.format(self.pacmanCacheIp.compressed, self.pacmanCachePort) +  self.tail
 		else:
 			complete = self.head + self.tail
 		# write file
