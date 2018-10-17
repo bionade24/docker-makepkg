@@ -7,15 +7,17 @@ import os
 import subprocess
 import sys
 
+# && mkdir /build/.gnupg && chown build-user:build-user /build/.gnupg && chmod 700 /build/.gnupg/
+
 ## Dockerfile generator
 class dmakepkgBuilder:
 	head = """FROM archimg/base:latest\nLABEL tool=docker-makepkg\nRUN echo -e "[multilib]\\nInclude = /etc/pacman.d/mirrorlist" >> /etc/pacman.conf"""
-	tail = ("""RUN pacman -Syuq --noconfirm --needed gcc base-devel distcc python git mercurial bzr subversion openssh && rm -rf /var/cache/pacman/pkg/*\n"""
-	"RUN useradd -m -d /build -s /bin/bash build-user\n"
+	tail = ("RUN useradd -m -d /build -s /bin/bash build-user\n"
 	"ADD sudoers /etc/sudoers\n"
 	"""WORKDIR /build\n"""
 	"""VOLUME "/src\"\n"""
 	"ADD run.py /run.py\n"
+	"ADD gnupg.conf /build/.gnupg/gnupg.conf\n"
 	"""ENTRYPOINT ["/run.py"]\n""")
 
 
@@ -57,7 +59,7 @@ class dmakepkgBuilder:
 			complete = self.head + "\nRUN /bin/bash -c 'cat <(echo Server = http://{}:{}) /etc/pacman.d/mirrorlist > foobar && mv foobar /etc/pacman.d/mirrorlist && pacman -Syuq --noconfirm --needed gcc base-devel distcc python git mercurial bzr subversion openssh && rm -rf /var/cache/pacman/pkg/* && cp /etc/pacman.d/mirrorlist foo && tail -n +2 foo > /etc/pacman.d/mirrorlist'\n"\
 			"".format(self.pacmanCacheIp.compressed, self.pacmanCachePort) +  self.tail
 		else:
-			complete = self.head + self.tail
+			complete = self.head + """RUN pacman -Syuq --noconfirm --needed gcc base-devel distcc python git mercurial bzr subversion openssh && rm -rf /var/cache/pacman/pkg/*\n""" + self.tail
 		# write file
 		scriptLocation = os.path.realpath(__file__)
 

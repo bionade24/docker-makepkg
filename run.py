@@ -14,6 +14,7 @@ def eprint(*args, **kwargs):
 	print(*args, file=sys.stderr, **kwargs)
 
 class dmakepkgContainer:
+	__restDefaults = "--nosign --force --syncdeps --noconfirm"
 
 	# From https://stackoverflow.com/questions/1868714/how-do-i-copy-an-entire-directory-of-files-into-an-existing-directory-using-pyth/12514470
 	# Written by user atzz
@@ -121,7 +122,7 @@ class dmakepkgContainer:
 		flags = None
 
 		if len(self.rest) == 0:
-			flags = "--nosign --force --syncdeps --noconfirm".split()
+			flags = self.__restDefaults.split()
 		else:
 			# translate list object to space seperated arguments
 			flags = self.rest
@@ -132,6 +133,12 @@ class dmakepkgContainer:
 			self.changeUserOrGid(buildUserUid, pwd.getpwnam("build-user").pw_gid, "/build")
 			self.changePermissionsRecursively(gnupg, 0o700)
 			self.appendToFile(gnupg + "/gpg.conf", "keyserver-options auto-key-retrieve\n")
+			self.changePermissionsRecursively(gnupg + "/gpg.conf", 0o600)
+
+		# if a command is specified in -e, then run it
+		if self.command:
+			args = shlex.split(self.command)
+			subprocess.run(args)
 
 		# su resets PATH, so distcc doesn't find the distcc directory
 		if self.checkForPumpMode():
@@ -143,16 +150,19 @@ class dmakepkgContainer:
 			arguments = [ 'su', '-c' ] +  [ 'DISTCC_HOSTS="{}" DISTCC_LOCATION={} pump makepkg {}'.format(self.getVar("/etc/makepkg.conf", "DISTCC_HOSTS"),
 				"/usr/bin",
 				" ".join(flags)) ] + [ '-s', '/bin/bash', 'build-user' ]
-			makepkgProcess = subprocess.Popen(arguments)
+			print("Arguments: ", arguments)
+			makepkgProcess = subprocess.run(arguments)
+			print("Ran out of the process.")
 
-			while makepkgProcess.poll() == None:
-				outs, errs = makepkgProcess.communicate(input="")
-				if outs:
-					print(outs)
-				if errs:
-					eprint(errs)
+			# while makepkgProcess.poll() == None:
+			# 	outs, errs = makepkgProcess.communicate(input="")
+			# 	if outs:
+			# 		print(outs)
+			# 	if errs:
+			# 		eprint(errs)
 		else:
-			arguments = [ 'su', '-c'] +  [ 'makepkg {}'.format(" ".join(flags)) ] + [ '-s', '/bin/bash', '-l' 'build-user']
+			arguments = [ 'su', '-c'] +  [ 'makepkg {}'.format(" ".join(flags)) ] + [ '-s', '/bin/bash', '-l', 'build-user']
+			print("Arguments: ", arguments)
 			makepkgProcess = subprocess.Popen(arguments)
 			while makepkgProcess.poll() == None:
 				outs, errs = makepkgProcess.communicate(input="")

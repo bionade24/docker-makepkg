@@ -7,6 +7,7 @@ import sys
 import uuid
 
 class dmakepkg:
+	__eDefaults = "--nosign --force --syncdeps --noconfirm"
 	def __init__(self):
 		self.pacmanConf="/etc/pacman.conf"
 		self.makepkgConf="/etc/makepkg.conf"
@@ -60,7 +61,11 @@ class dmakepkg:
 			)
 		self.parser.add_argument('-e', nargs='?',
 			help="Executes the argument as a command in the container after copying the package source")
-		namespace, self.rest = self.parser.parse_known_args()
+
+		self.parser.add_argument('rest', nargs=argparse.REMAINDER,
+			help="The arguments that are passed to the call to pacman in its executions in the container. They default to \"--nosign --force --syncdeps --noconfirm\".")
+
+		namespace = self.parser.parse_args()
 
 		parameters = [ "--name", "dmakepkg_{}".format(uuid.uuid4())]
 
@@ -97,8 +102,9 @@ class dmakepkg:
 			completeCmdLine.append("-y")
 		completeCmdLine.extend(["-u", str(os.geteuid()), "-g", str(os.getegid())])
 		if self.command:
-			completeCmdLine.extend(["-e", self.command ])
-		completeCmdLine += self.rest
+			completeCmdLine.extend(["-e", self.command])
+		completeCmdLine += namespace.rest
+		print("Cmdline: ", completeCmdLine)
 
 		dockerProcess = subprocess.Popen(completeCmdLine)
 		dockerProcess.wait()
