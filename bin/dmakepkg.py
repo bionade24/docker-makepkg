@@ -104,7 +104,6 @@ class dmakepkg:
 		if self.command:
 			completeCmdLine.extend(["-e", self.command])
 		completeCmdLine += namespace.rest
-		print("Cmdline: ", completeCmdLine)
 
 		dockerProcess = subprocess.Popen(completeCmdLine)
 		dockerProcess.wait()

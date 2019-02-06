@@ -11,7 +11,7 @@ import sys
 
 ## Dockerfile generator
 class dmakepkgBuilder:
-	head = """FROM archimg/base:latest\nLABEL tool=docker-makepkg\nRUN echo -e "[multilib]\\nInclude = /etc/pacman.d/mirrorlist" >> /etc/pacman.conf"""
+	head = """FROM archlinux/base:latest\nLABEL tool=docker-makepkg\nRUN echo -e "[multilib]\\nInclude = /etc/pacman.d/mirrorlist" >> /etc/pacman.conf\n RUN pacman --noconfirm -Sy archlinux-keyring && pacman-key --init && pacman-key --populate archlinux\n"""
 	tail = ("RUN useradd -m -d /build -s /bin/bash build-user\n"
 	"ADD sudoers /etc/sudoers\n"
 	"""WORKDIR /build\n"""
@@ -56,10 +56,10 @@ class dmakepkgBuilder:
 
 	def createDockerfile(self):
 		if self.cache:
-			complete = self.head + "\nRUN /bin/bash -c 'cat <(echo Server = http://{}:{}) /etc/pacman.d/mirrorlist > foobar && mv foobar /etc/pacman.d/mirrorlist && pacman -Syuq --noconfirm --needed gcc base-devel distcc python git mercurial bzr subversion openssh && rm -rf /var/cache/pacman/pkg/* && cp /etc/pacman.d/mirrorlist foo && tail -n +2 foo > /etc/pacman.d/mirrorlist'\n"\
+			complete = self.head + "\nRUN /bin/bash -c 'cat <(echo Server = http://{}:{}) /etc/pacman.d/mirrorlist > foobar && mv foobar /etc/pacman.d/mirrorlist && pacman -Syuq --noconfirm --needed procps-ng gcc base-devel distcc python git mercurial bzr subversion openssh && rm -rf /var/cache/pacman/pkg/* && cp /etc/pacman.d/mirrorlist foo && tail -n +2 foo > /etc/pacman.d/mirrorlist'\nCOPY pump /usr/bin/pump\n"\
 			"".format(self.pacmanCacheIp.compressed, self.pacmanCachePort) +  self.tail
 		else:
-			complete = self.head + """RUN pacman -Syuq --noconfirm --needed gcc base-devel distcc python git mercurial bzr subversion openssh && rm -rf /var/cache/pacman/pkg/*\n""" + self.tail
+			complete = self.head + """RUN pacman -Syuq --noconfirm --needed procps-ng  gcc base-devel distcc python git mercurial bzr subversion openssh && rm -rf /var/cache/pacman/pkg/*\nCOPY pump /usr/bin/pump\n""" + self.tail
 		# write file
 		scriptLocation = os.path.realpath(__file__)
 

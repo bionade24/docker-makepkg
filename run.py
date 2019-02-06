@@ -150,9 +150,7 @@ class dmakepkgContainer:
 			arguments = [ 'su', '-c' ] +  [ 'DISTCC_HOSTS="{}" DISTCC_LOCATION={} pump makepkg {}'.format(self.getVar("/etc/makepkg.conf", "DISTCC_HOSTS"),
 				"/usr/bin",
 				" ".join(flags)) ] + [ '-s', '/bin/bash', 'build-user' ]
-			print("Arguments: ", arguments)
 			makepkgProcess = subprocess.run(arguments)
-			print("Ran out of the process.")
 
 			# while makepkgProcess.poll() == None:
 			# 	outs, errs = makepkgProcess.communicate(input="")
@@ -162,7 +160,6 @@ class dmakepkgContainer:
 			# 		eprint(errs)
 		else:
 			arguments = [ 'su', '-c'] +  [ 'makepkg {}'.format(" ".join(flags)) ] + [ '-s', '/bin/bash', '-l', 'build-user']
-			print("Arguments: ", arguments)
 			makepkgProcess = subprocess.Popen(arguments)
 			while makepkgProcess.poll() == None:
 				outs, errs = makepkgProcess.communicate(input="")
