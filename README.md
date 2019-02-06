@@ -1,18 +1,51 @@
-# Docker makepkg
+# Docker-Makepkg
 
-This is a docker image for building Arch Linux packages in a clean container.
-
-## Release schedule
-There is no release schedule. This uses a purely local image that is updated every day, or 15 minutes after system start, if you use the docker-makepkg.timer systemd unit. The upstream image (archimg/base) should be updated every day, as claimed by its description. If it isn't, you should be able to build your own base image for the makepkg image quite easily.
+This is a tool and docker image for building packages in a docker container. The resulting package is placed in the directory the tool was called from.
 
 ## Usage
-The included dmakepkg script will wrap this image nicely and clean up after itself and is therefore the recommended way to use this docker image.
-the final package file will be placed in the current directory when run with dmakepkg and can be used as a drop in replacement for local makepkg.
+The included dmakepkg.py script wraps calling of `docker run` and the necessary arguments.
+It has several arguments that can be passed.
 
-The default flags sent to makepkg is `--force --syncdeps --noconfirm`
-Both the dmakepkg and running the image directly support overriding default flags. Any additional flags at the end will be passed directly to makepkg instead of the ones outlined above.
-Passing '-p' will run a pacman -Syu before building the package. Useful if you haven't updated the master image yet but need to build against the latest libraries.
-Passing '-u' will let you specify a UID to chown the file to before outputting it again. '-g' will let you also set the group (but requires -u as well or it will be ignored'
-All remaining parameters will be passed directly through to makepkg.
+```
+bin/dmakepkg.py -h
+usage: dmakepkg [-h] [-x] [-y] [-z] [-e [E]] ...
 
-The image can  also be run manually. You need to bind the source directory with a PKGBUILD to /src (e.g. `-v $(pwd):/src` to mount current directory). The final package file will be placed in the bound directory, no other files will be modified
+positional arguments:
+  rest        The arguments that are passed to the call to pacman in its
+              executions in the container. They default to "--nosign --force
+              --syncdeps --noconfirm".
+
+optional arguments:
+  -h, --help  show this help message and exit
+  -x          Use host system's /etc/pacman.conf
+  -y          Never use pump mode, even if pump mode capable servers are
+              configured
+  -z          Do not automatically download missing PGP keys
+  -e [E]      Executes the argument as a command in the container after
+              copying the package source
+
+```
+
+Using the tool could look like this:
+```
+$ git clone https://example.comf/project.git
+$ cd project
+$ dmakepkg
+```
+
+### Description of the arguments
+
+* rest: The rest of the arguments that are not known to the script. They are passed through to the docker container's makepkg call.
+
+* -h, --help: Display the help message
+* -x: Pass in the host's pacman.conf into the docker image.
+* -y: Force disabling of pump mode. By default, distcc `pump` mode is used to accelerate the compiling of code.
+* -z: Do not download missing PGP keys. By default, the downloading of missing PGP keys is _enabled_.
+* -e [E]: This executes the passed string as command in the container after copying of the package source. This can be used to, for example, install prerequired packages or perform arbitrary actions in the container.
+
+## The docker image
+The docker image that is used to build must be built prior to calling the script.
+The image is built using the `containerBuilder.py` script that is started by the packaged systemd service.
+The associated timer unit thus builds the image 15 minutes after the system was booted and every day.
+During the building of the image, a darkhttpd based cache is used to accelerate the download of the packages. This is implemented by starting darkhttpd on the IP address of the docker0 device and installing of an iptables rule that permits connections to that address and the port of darkhttpd.
+After the tool has finished building, the iptables rules are removed and darkhttpd is stopped.
