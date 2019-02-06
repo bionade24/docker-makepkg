@@ -76,7 +76,7 @@ class dmakepkg:
 		localCacheDir = "/var/cache/pacman/pkg"
 
 		if namespace.x:
-			parameters.extend("-v /etc/pacman.conf:/etc/pacman.conf -v {}:{}".format(localCacheDir, localCacheDir).split(" "))
+			parameters.extend("-v /etc/pacman.conf:/etc/pacman.conf -v {}:{}:ro".format(localCacheDir, localCacheDir).split(" "))
 		else:
 			parameters.extend("-v {}:{}".format(localCacheDir, self.pacmanPkgCache).split())
 
@@ -112,6 +112,7 @@ class dmakepkg:
 			if "sign" in i:
 				if not i.startswith("!"):
 					self.signPackages()
+		print("\n")
 
 	# this function finds all possible arguments to the docker command line we could need
 	# and builds them.

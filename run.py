@@ -132,7 +132,7 @@ class dmakepkgContainer:
 			os.makedirs(gnupg, mode=0o700, exist_ok=True)
 			self.changeUserOrGid(buildUserUid, pwd.getpwnam("build-user").pw_gid, "/build")
 			self.changePermissionsRecursively(gnupg, 0o700)
-			self.appendToFile(gnupg + "/gpg.conf", "keyserver-options auto-key-retrieve\n")
+			self.appendToFile(gnupg + "/gpg.conf", "\nkeyserver-options auto-key-retrieve\n")
 			self.changePermissionsRecursively(gnupg + "/gpg.conf", 0o600)
 
 		# if a command is specified in -e, then run it
