@@ -2,5 +2,6 @@
 Description=Build the docker-makepkg container
 
 [Service]
+Type=oneshot
 ExecStart=/bin/python3 -B /opt/docker-makepkg/containerBuilder.py
 ExecStart=/bin/docker images prune --filter tool=docker-makepkg
