@@ -91,7 +91,7 @@ class dmakepkg:
 		# set object attributes
 		# self.hostPacmanConf = namespace.
 		# create first part
-		completeCmdLine = "/bin/docker run --rm -ti --cpu-shares=128 --pids-limit=-1".split(" ")
+		completeCmdLine = "/bin/docker run --init --rm -ti --cpu-shares=128 --pids-limit=-1".split(" ")
 
 
 		completeCmdLine += ["-v", "{}:/src".format(os.getcwd())] + parameters + [ "makepkg" ]
@@ -112,7 +112,6 @@ class dmakepkg:
 			if "sign" in i:
 				if not i.startswith("!"):
 					self.signPackages()
-		print("\n")
 
 	# this function finds all possible arguments to the docker command line we could need
 	# and builds them.
