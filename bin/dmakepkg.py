@@ -52,6 +52,10 @@ class dmakepkg:
 			action='store_true',
 			help="Use host system's /etc/pacman.conf"
 			)
+		self.parser.add_argument('-X',
+			action='store_true',
+			help="Use host system's /etc/pacman.d/mirrorlist"
+			)
 		self.parser.add_argument('-y',
 			action='store_false',
 			help="Never use pump mode, even if pump mode capable servers are configured")
@@ -79,6 +83,9 @@ class dmakepkg:
 			parameters.extend("-v /etc/pacman.conf:/etc/pacman.conf -v {}:{}:ro".format(localCacheDir, localCacheDir).split(" "))
 		else:
 			parameters.extend("-v {}:{}".format(localCacheDir, self.pacmanPkgCache).split())
+
+		if namespace.X:
+			parameters.extend("-v /etc/pacman.d/mirrorlist:/etc/pacman.d/mirrorlist:ro".split(" "))
 
 		self.usePumpMode = namespace.y
 		self.downloadKeys = namespace.z
