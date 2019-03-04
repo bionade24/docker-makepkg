@@ -33,9 +33,15 @@ class dmakepkgContainer:
 	def changeUserOrGid(self, uid, gid, path):
 		for root, dirs, files in os.walk(path):
 			for momo in dirs:
-				os.chown(os.path.join(root, momo), uid, gid)
+				try:
+					os.chown(os.path.join(root, momo), uid, gid)
+				except Exception as e:
+					eprint(e)
 			for momo in files:
-				os.chown(os.path.join(root, momo), uid, gid)
+				try:
+					os.chown(os.path.join(root, momo), uid, gid)
+				except Exception as e:
+					eprint(e)
 
 	# From https://www.tutorialspoint.com/How-to-change-the-permission-of-a-directory-using-Python
 	# Written by Rajendra Dharmkar
@@ -176,7 +182,10 @@ class dmakepkgContainer:
 		# copy any packages
 		# use globbing to get all packages
 		for i in glob.iglob("/build/*pkg.tar*"):
-			shutil.copy(i, "/src")
+			try:
+				shutil.copy(i, "/src")
+			except Exception as e:
+				eprint(e)
 		else:
 			if not len(flags):
 				eprint("No packages were built!")
