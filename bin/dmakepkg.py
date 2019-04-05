@@ -49,12 +49,12 @@ class dmakepkg:
 	def main(self):
 		self.parser = argparse.ArgumentParser(prog="dmakepkg")
 		self.parser.add_argument('-x',
-			action='store_true',
-			help="Use host system's /etc/pacman.conf"
+			action='store_false',
+			help="Do not use host system's /etc/pacman.conf"
 			)
 		self.parser.add_argument('-X',
-			action='store_true',
-			help="Use host system's /etc/pacman.d/mirrorlist"
+			action='store_false',
+			help="Do not use host system's /etc/pacman.d/mirrorlist"
 			)
 		self.parser.add_argument('-y',
 			action='store_false',
@@ -63,6 +63,7 @@ class dmakepkg:
 			action='store_false',
 			help="Do not automatically download missing PGP keys",
 			)
+
 		self.parser.add_argument('-e', nargs='?',
 			help="Executes the argument as a command in the container after copying the package source")
 
