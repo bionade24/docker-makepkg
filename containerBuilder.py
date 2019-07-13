@@ -10,8 +10,13 @@ import netifaces
 
 # && mkdir /build/.gnupg && chown build-user:build-user /build/.gnupg && chmod 700 /build/.gnupg/
 
-## Dockerfile generator
-class dmakepkgBuilder:
+def eprint(*args, **kwargs):
+    print(*args, file=sys.stderr, **kwargs)
+
+class dmakepkg_builder:
+    """
+    Dockerfile generator
+    """
     head = """FROM archlinux/base:latest\nLABEL org.thermicorp.tool=docker-makepkg\nRUN echo -e \
               "[multilib]\\nInclude = /etc/pacman.d/mirrorlist" >> /etc/pacman.conf\n RUN pacman \
               --noconfirm -Sy archlinux-keyring && pacman-key --init && pacman-key --populate \
@@ -25,13 +30,19 @@ class dmakepkgBuilder:
             "ADD gnupg.conf /build/.gnupg/gnupg.conf\n"
             """ENTRYPOINT ["/run.py"]\n""")
 
-
     def __init__(self):
-        self.pacmanCacheDir = "/var/cache/pacman/pkg"
-        self.pacmanCachePort = "8990"
+        self.pacman_cache_dir = "/var/cache/pacman/pkg"
+        self.pacman_cache_ip = None
+        self.pacman_cache_port = "8990"
         self.cache = True
+        self.darkhttpd_process = None
+        self.docker_build_process = None
 
-    def getdocker0Address(self):
+    @classmethod
+    def get_docker0_address(cls):
+        """
+        Get the first valid non-link-local IP address on docker0
+        """
         try:
             addresses = netifaces.ifaddresses('docker0')
         except:
@@ -41,74 +52,100 @@ class dmakepkgBuilder:
             sys.exit(1)
         else:
             # check for IPv4 and IPv6 addresses. We can't use link-local ones though,
-            # because the address specified for those needs to contain the name 
+            # because the address specified for those needs to contain the name
             # of the interface that needs to be used to reach the destination address and I don't know of a way to predict it
             # in docker.
-            for (family, addressList) in addresses.items():
+            for (family, address_list) in addresses.items():
                 if family == netifaces.AF_INET:
-                    for addressDict in addressList:
+                    for address_dict in address_list:
                         return ipaddress.ip_address(addressDict["addr"])
                 elif family == netifaces.AF_INET6:
-                    for addressDict in addressList:
-                        ipv6Address = ipaddress.ip_address(addressDict["addr"])
-                        if not ipv6Address.is_link_local():
-                            return ipaddress.ip_address(addressDict["addr"])
+                    for address_dict in address_list:
+                        ipv6_address = ipaddress.ip_address(address_dict["addr"])
+                        if not ipv6_address.is_link_local():
+                            return ipaddress.ip_address(address_dict["addr"])
             eprint("No suitable address found for the local cache. Therefore the local cache is disabled.")
             return None
 
     def pacmanCacheExists(self):
-        return os.path.exists(self.pacmanCacheDir)
+        """
+        Check if the pacman cache directory exists
+        """
+        return os.path.exists(self.pacman_cache_dir)
 
     def createDockerfile(self):
+        """
+        Generate the Dockerfile
+        """
         if self.cache:
             complete = self.head + "\nRUN /bin/bash -c 'cat <(echo Server = http://{}:{}) /etc/pacman.d/mirrorlist > foobar && mv foobar /etc/pacman.d/mirrorlist && pacman -Syuq --noconfirm --needed procps-ng gcc base-devel distcc python git mercurial bzr subversion openssh && rm -rf /var/cache/pacman/pkg/* && cp /etc/pacman.d/mirrorlist foo && tail -n +2 foo > /etc/pacman.d/mirrorlist'\n"\
-            "".format(self.pacmanCacheIp.compressed, self.pacmanCachePort) +  self.tail
+            "".format(self.pacman_cache_ip.compressed, self.pacman_cache_port) +  self.tail
         else:
             complete = self.head + """RUN pacman -Syuq --noconfirm --needed procps-ng  gcc base-devel distcc python git mercurial bzr subversion openssh && rm -rf /var/cache/pacman/pkg/*\nCOPY pump /usr/bin/pump\n""" + self.tail
         # write file
-        scriptLocation = os.path.realpath(__file__)
+        script_location = os.path.realpath(__file__)
 
-        with open(os.path.join(os.path.dirname(scriptLocation), "Dockerfile"), "w") as dockerFile:
-            dockerFile.write(complete)
+        with open(os.path.join(os.path.dirname(script_location), "Dockerfile"), "w") as docker_file:
+            docker_file.write(complete)
 
     def startDockerBuild(self):
+        """
+        Start docker build
+        """
+        args = ["/bin/docker", "build", "--pull", "--no-cache", "--tag=makepkg", os.path.dirname(
+            os.path.realpath(__file__))]
 
-        args = [ "/bin/docker", "build", "--pull", "--no-cache", "--tag=makepkg", os.path.dirname(os.path.realpath(__file__)) ]
-
-        dockerBuild = subprocess.run(args)
+        try:
+            return subprocess.run(args).returncode
+        except:
+            return 1
 
 
     def startLocalCache(self):
+        """
+        Start the pacman http cache
+        """
         # runs darkhttpd
-        args = ["/usr/bin/darkhttpd", self.pacmanCacheDir, "--port", self.pacmanCachePort ]
-        self.darkhttpdProcess = subprocess.Popen(args)
+        args = ["/usr/bin/darkhttpd", self.pacman_cache_dir, "--port", self.pacman_cache_port]
+        self.darkhttpd_process = subprocess.Popen(args)
 
     def stopLocalCache(self):
-        self.darkhttpdProcess.terminate()
+        self.darkhttpd_process.terminate()
 
     def insertIptablesRules(self):
+        """
+        Install the iptables rule for the pacman http cache
+        """
         comm = {
             4 : "/bin/iptables",
             6 : "/bin/ip6tables"
-        }[self.pacmanCacheIp.version]
-        args = "{} -w 5 -W 2000 -I INPUT -p tcp --dport 8990 -i docker0 -d {} -j ACCEPT".format(comm, self.pacmanCacheIp.compressed).split()
+        }[self.pacman_cache_ip.version]
+        args = "{} -w 5 -W 2000 -I INPUT -p tcp --dport 8990 -i docker0 -d {} -j ACCEPT".format(
+            comm, self.pacman_cache_ip.compressed).split()
         subprocess.run(args)
 
     def deleteIptablesRules(self):
+        """
+        Remove the iptables rule for the pacman http cache
+        """
         comm = {
             4 : "/bin/iptables",
             6 : "/bin/ip6tables"
-        }[self.pacmanCacheIp.version]
-        args = "{} -w 5 -W 2000 -D INPUT -p tcp --dport 8990 -i docker0 -d {} -j ACCEPT".format(comm, self.pacmanCacheIp.compressed).split()
+        }[self.pacman_cache_ip.version]
+        args = "{} -w 5 -W 2000 -D INPUT -p tcp --dport 8990 -i docker0 -d {} -j ACCEPT".format(
+            comm, self.pacman_cache_ip.compressed).split()
         subprocess.run(args)
 
     def main(self):
+        """
+        Main function for dmakepkg_builder. Runs the build process
+        """
         # check the docker0 address
-        ip = self.getdocker0Address()
+        ip_address = self.getdocker0Address()
 
-        if not ip or not self.pacmanCacheExists():
+        if not ip_address or not self.pacmanCacheExists():
             self.cache = False
-        self.pacmanCacheIp = ip
+        self.pacman_cache_ip = ip_address
 
         # create and write Dockerfile
         self.createDockerfile()
@@ -124,9 +161,8 @@ class dmakepkgBuilder:
         # make sure it gets cleaned up if the script exits
         atexit.register(self.deleteIptablesRules)
 
-        self.startDockerBuild()
-        sys.exit(0)
+        sys.exit(self.startDockerBuild())
 
 if __name__ == "__main__":
-    builder = dmakepkgBuilder()
-    builder.main()
+    BUILDER = dmakepkg_builder()
+    BUILDER.main()
