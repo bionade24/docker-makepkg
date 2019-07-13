@@ -59,11 +59,14 @@ class dmakepkg:
 		self.parser.add_argument('-y',
 			action='store_false',
 			help="Never use pump mode, even if pump mode capable servers are configured")
+		self.parser.add_argument('-Y',
+			action='store_true',
+			help="Use the host system's package cache (/var/cache/pacman/pkg)"
+			)
 		self.parser.add_argument('-z',
 			action='store_false',
 			help="Do not automatically download missing PGP keys",
 			)
-
 		self.parser.add_argument('-e', nargs='?',
 			help="Executes the argument as a command in the container after copying the package source")
 
@@ -87,6 +90,9 @@ class dmakepkg:
 
 		if namespace.X:
 			parameters.extend("-v /etc/pacman.d/mirrorlist:/etc/pacman.d/mirrorlist:ro".split(" "))
+
+		if namespace.Y:
+			parameters.extend("-v /var/cache/pacman/pkg/:/var/cache/pacman/pkg/:ro".split(" "))
 
 		self.usePumpMode = namespace.y
 		self.downloadKeys = namespace.z
