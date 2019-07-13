@@ -2,10 +2,11 @@
 
 import atexit
 import ipaddress
-import netifaces
 import os
 import subprocess
 import sys
+
+import netifaces
 
 # && mkdir /build/.gnupg && chown build-user:build-user /build/.gnupg && chmod 700 /build/.gnupg/
 
