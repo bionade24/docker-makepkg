@@ -12,14 +12,18 @@ import netifaces
 
 ## Dockerfile generator
 class dmakepkgBuilder:
-    head = """FROM archlinux/base:latest\nLABEL org.thermicorp.tool=docker-makepkg\nRUN echo -e "[multilib]\\nInclude = /etc/pacman.d/mirrorlist" >> /etc/pacman.conf\n RUN pacman --noconfirm -Sy archlinux-keyring && pacman-key --init && pacman-key --populate archlinux\n"""
+    head = """FROM archlinux/base:latest\nLABEL org.thermicorp.tool=docker-makepkg\nRUN echo -e \
+              "[multilib]\\nInclude = /etc/pacman.d/mirrorlist" >> /etc/pacman.conf\n RUN pacman \
+              --noconfirm -Sy archlinux-keyring && pacman-key --init && pacman-key --populate \
+              archlinux\n"""
+
     tail = ("RUN useradd -m -d /build -s /bin/bash build-user\n"
-    "ADD sudoers /etc/sudoers\n"
-    """WORKDIR /build\n"""
-    """VOLUME "/src\"\n"""
-    "ADD run.py /run.py\n"
-    "ADD gnupg.conf /build/.gnupg/gnupg.conf\n"
-    """ENTRYPOINT ["/run.py"]\n""")
+            "ADD sudoers /etc/sudoers\n"
+            """WORKDIR /build\n"""
+            """VOLUME "/src\"\n"""
+            "ADD run.py /run.py\n"
+            "ADD gnupg.conf /build/.gnupg/gnupg.conf\n"
+            """ENTRYPOINT ["/run.py"]\n""")
 
 
     def __init__(self):
@@ -97,7 +101,7 @@ class dmakepkgBuilder:
         }[self.pacmanCacheIp.version]
         args = "{} -w 5 -W 2000 -D INPUT -p tcp --dport 8990 -i docker0 -d {} -j ACCEPT".format(comm, self.pacmanCacheIp.compressed).split()
         subprocess.run(args)
-    
+
     def main(self):
         # check the docker0 address
         ip = self.getdocker0Address()
@@ -116,7 +120,7 @@ class dmakepkgBuilder:
 
         # insert iptables rule
         self.insertIptablesRules()
-        
+
         # make sure it gets cleaned up if the script exits
         atexit.register(self.deleteIptablesRules)
 
