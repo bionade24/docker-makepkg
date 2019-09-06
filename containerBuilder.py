@@ -30,7 +30,7 @@ class dmakepkgBuilder:
 		try:
 			addresses = netifaces.ifaddresses('docker0')
 		except:
-			eprint("No docker0 interface exists. Looks like you don't run docker?")
+			print("No docker0 interface exists. Looks like you don't run docker?")
 			# we could actually theoretically use an IP from any interface, but I want
 			# to make sure to not make any holes into existing rule sets that protect other interfaces.
 			sys.exit(1)
@@ -48,7 +48,7 @@ class dmakepkgBuilder:
 						ipv6Address = ipaddress.ip_address(addressDict["addr"])
 						if not ipv6Address.is_link_local():
 							return ipaddress.ip_address(addressDict["addr"])
-			eprint("No suitable address found for the local cache. Therefore the local cache is disabled.")
+			print("No suitable address found for the local cache. Therefore the local cache is disabled.")
 			return None
 
 	def pacmanCacheExists(self):
@@ -68,14 +68,14 @@ class dmakepkgBuilder:
 
 	def startDockerBuild(self):
 
-		args = [ "/bin/docker", "build", "--pull", "--no-cache", "--tag=makepkg", os.path.dirname(os.path.realpath(__file__)) ]
+		args = [ "/usr/bin/docker", "build", "--pull", "--no-cache", "--tag=makepkg", os.path.dirname(os.path.realpath(__file__)) ]
 
 		dockerBuild = subprocess.run(args)
 
 
 	def startLocalCache(self):
 		# runs darkhttpd
-		args = ["/usr/bin/darkhttpd", self.pacmanCacheDir, "--port", self.pacmanCachePort ]
+		args = ["/usr/local/bin/darkhttpd", self.pacmanCacheDir, "--port", self.pacmanCachePort ]
 		self.darkhttpdProcess = subprocess.Popen(args)
 
 	def stopLocalCache(self):
@@ -83,16 +83,16 @@ class dmakepkgBuilder:
 
 	def insertIptablesRules(self):
 		comm = {
-			4 : "/bin/iptables",
-			6 : "/bin/ip6tables"
+			4 : "/sbin/iptables",
+			6 : "/sbin/ip6tables"
 		}[self.pacmanCacheIp.version]
 		args = "{} -w 5 -W 2000 -I INPUT -p tcp --dport 8990 -i docker0 -d {} -j ACCEPT".format(comm, self.pacmanCacheIp.compressed).split()
 		subprocess.run(args)
 
 	def deleteIptablesRules(self):
 		comm = {
-			4 : "/bin/iptables",
-			6 : "/bin/ip6tables"
+			4 : "/sbin/iptables",
+			6 : "/sbin/ip6tables"
 		}[self.pacmanCacheIp.version]
 		args = "{} -w 5 -W 2000 -D INPUT -p tcp --dport 8990 -i docker0 -d {} -j ACCEPT".format(comm, self.pacmanCacheIp.compressed).split()
 		subprocess.run(args)

@@ -28,7 +28,7 @@ class dmakepkg:
 		return p.stdout.readlines()[0].decode("utf-8").strip()
 
 	def signPackages(self):
-		args = [ "/bin/gpg", "--batch", "--yes", "--detach-sign" ]
+		args = [ "/usr/bin/gpg", "--batch", "--yes", "--detach-sign" ]
 		key = self.getVar(self.makepkgConf, "GPGKEY")
 		if key:
 			args.extend(["-u", key])
@@ -91,7 +91,7 @@ class dmakepkg:
 		# set object attributes
 		# self.hostPacmanConf = namespace.
 		# create first part
-		completeCmdLine = "/bin/docker run --rm -ti --cpu-shares=128 --pids-limit=-1".split(" ")
+		completeCmdLine = "/usr/bin/docker run --rm -ti --cpu-shares=128 --pids-limit=-1".split(" ")
 
 
 		completeCmdLine += ["-v", "{}:/src".format(os.getcwd())] + parameters + [ "makepkg" ]
