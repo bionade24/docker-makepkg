@@ -160,13 +160,9 @@ class dmakepkgContainer:
 			# 		eprint(errs)
 		else:
 			arguments = [ 'su', '-c'] +  [ 'makepkg {}'.format(" ".join(flags)) ] + [ '-s', '/bin/bash', '-l', 'build-user']
-			makepkgProcess = subprocess.Popen(arguments)
-			while makepkgProcess.poll() == None:
-				outs, errs = makepkgProcess.communicate(input="")
-				if outs:
-					print(outs)
-				if errs:
-					eprint(errs)
+			makepkgProcess = subprocess.run(arguments)
+			if makepkgProcess.returncode == 1 or 2:
+				sys.exit(1)
 
 		if self.user and not self.group:
 			self.changeUserOrGid(self.user, self.group, "/build")
