@@ -106,7 +106,8 @@ class dmakepkg:
         completeCmdLine += namespace.rest
 
         dockerProcess = subprocess.Popen(completeCmdLine)
-        if dockerProcess.returncode() > 0:
+        dockerProcess.wait()
+        if dockerProcess.returncode > 0:
             sys.exit(1)
 
         for i in self.getVar(self.makepkgConf, "BUILDENV").split():
