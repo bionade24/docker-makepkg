@@ -162,7 +162,7 @@ class dmakepkgContainer:
         else:
             arguments = ['su', '-c'] + ['makepkg {}'.format(" ".join(flags))] + ['-s', '/bin/bash', '-l', 'build-user']
             makepkgProcess = subprocess.run(arguments)
-            if makepkgProcess.returncode == 1 or 2:
+            if makepkgProcess.returncode > 0:
                 sys.exit(1)
 
         if self.user and not self.group:

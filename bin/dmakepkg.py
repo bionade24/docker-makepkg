@@ -1,4 +1,4 @@
-#! /bin/python3 -B
+#! /usr/bin/env python3
 
 import argparse
 import os
@@ -106,7 +106,8 @@ class dmakepkg:
         completeCmdLine += namespace.rest
 
         dockerProcess = subprocess.Popen(completeCmdLine)
-        dockerProcess.wait()
+        if dockerProcess.returncode() > 0:
+            sys.exit(1)
 
         for i in self.getVar(self.makepkgConf, "BUILDENV").split():
             if "sign" in i:
